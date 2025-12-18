@@ -26,21 +26,9 @@ function App() {
 
   // セッション管理
   useEffect(() => {
-    // マジックリンクからのトークンを処理するため、少し待つ
-    const initSession = async () => {
-      // URLにハッシュがある場合、Supabaseが処理するのを待つ
-      const { data: { session } } = await supabase.auth.getSession()
-      setSession(session)
-      if (session) {
-        fetchLogs(session.user.id)
-        fetchProfile(session.user.id)
-      }
-      setLoading(false)
-    }
-    
-    initSession()
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // 認証状態の変更を監視
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth event:', event) // デバッグ用
       setSession(session)
       if (session) {
         fetchLogs(session.user.id)
@@ -48,6 +36,17 @@ function App() {
       }
       setLoading(false)
     })
+
+    // 初期セッションを取得
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      if (session) {
+        fetchLogs(session.user.id)
+        fetchProfile(session.user.id)
+      }
+      setLoading(false)
+    })
+
     return () => subscription.unsubscribe()
   }, [])
 
