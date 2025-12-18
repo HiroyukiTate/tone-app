@@ -98,6 +98,22 @@ export const SearchModal = ({ isOpen, onClose, onSelectItem }: SearchModalProps)
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {loading && <p className="text-center text-gray-400 mt-4">検索中...</p>}
 
+          {/* 入力があれば「この名前で新規作成」ボタンを表示 */}
+          {!loading && query.trim() && (
+            <button
+              onClick={handleCreateNew}
+              className="w-full text-left p-3 bg-blue-50 border-2 border-dashed border-blue-300 rounded-xl hover:bg-blue-100 transition flex items-center gap-3"
+            >
+              <div className="w-12 h-12 bg-blue-100 rounded flex items-center justify-center flex-shrink-0">
+                <Plus size={24} className="text-blue-600" />
+              </div>
+              <div>
+                <p className="font-bold text-blue-700">「{query}」を新規作成</p>
+                <p className="text-xs text-blue-500">この名前で作品を登録する</p>
+              </div>
+            </button>
+          )}
+
           {!loading && results.map((item) => (
             <button
               key={item.id}
@@ -114,18 +130,11 @@ export const SearchModal = ({ isOpen, onClose, onSelectItem }: SearchModalProps)
           ))}
 
           {/* 検索したけど結果が0件だった場合 */}
-          {!loading && searched && results.length === 0 && (
+          {!loading && searched && results.length === 0 && !query.trim() && (
             <div className="text-center mt-8 space-y-4">
               <p className="text-gray-500">
-                「{query}」は見つかりませんでした。
+                作品名を入力して検索してください
               </p>
-              <button
-                onClick={handleCreateNew}
-                className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-6 py-3 rounded-full font-bold hover:bg-blue-200 transition"
-              >
-                <Plus size={20} />
-                新しく登録する
-              </button>
             </div>
           )}
         </div>
