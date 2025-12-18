@@ -5,6 +5,7 @@ import { Auth } from './components/Auth'
 import { SearchModal } from './components/SearchModal'
 import { LogForm } from './components/LogForm'
 import { ProfileSettings } from './components/ProfileSettings'
+import { LogDetail } from './components/LogDetail'
 import type { Session } from '@supabase/supabase-js'
 import './App.css'
 
@@ -23,6 +24,7 @@ function App() {
   const [selectedItem, setSelectedItem] = useState<any | null>(null)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [profile, setProfile] = useState<any>(null)
+  const [selectedLog, setSelectedLog] = useState<any>(null)
 
   // セッション管理
   useEffect(() => {
@@ -137,7 +139,11 @@ function App() {
             // データがあるときのリスト表示
             <div className="space-y-4">
               {logs.map((log) => (
-                <div key={log.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex gap-4">
+                <div 
+                  key={log.id} 
+                  onClick={() => setSelectedLog(log)}
+                  className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex gap-4 cursor-pointer hover:shadow-md transition"
+                >
                   {/* 左側：スタンプをドーンと表示 */}
                   <div className="flex flex-col items-center justify-center min-w-[3rem]">
                     <span className="text-4xl">{STAMPS[log.stamp] || '❓'}</span>
@@ -202,6 +208,16 @@ function App() {
             userId={session.user.id}
             onClose={() => setIsSettingsOpen(false)}
             onSaved={() => fetchProfile(session.user.id)}
+          />
+        )}
+
+        {/* ログ詳細モーダル */}
+        {selectedLog && session && (
+          <LogDetail
+            log={selectedLog}
+            onClose={() => setSelectedLog(null)}
+            onUpdated={() => fetchLogs(session.user.id)}
+            onDeleted={() => fetchLogs(session.user.id)}
           />
         )}
 
