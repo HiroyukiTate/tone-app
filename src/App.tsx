@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 import { Auth } from './components/Auth'
 import { SearchModal } from './components/SearchModal'
 import { LogForm } from './components/LogForm'
+import { ProfileSettings } from './components/ProfileSettings'
 import type { Session } from '@supabase/supabase-js'
 import './App.css'
 
@@ -18,19 +20,37 @@ function App() {
   
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<any | null>(null)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [profile, setProfile] = useState<any>(null)
 
   // セッション管理
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
-      if (session) fetchLogs(session.user.id) // ログイン済みならログ取得
+      if (session) {
+        fetchLogs(session.user.id)
+        fetchProfile(session.user.id)
+      }
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
-      if (session) fetchLogs(session.user.id) // ログイン変化時も再取得
+      if (session) {
+        fetchLogs(session.user.id)
+        fetchProfile(session.user.id)
+      }
     })
     return () => subscription.unsubscribe()
   }, [])
+
+  // プロフィールを取得する関数
+  const fetchProfile = async (userId: string) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
+    setProfile(data)
+  }
 
   // ログを取得する関数
   const fetchLogs = async (userId: string) => {
@@ -71,7 +91,18 @@ function App() {
         {/* ヘッダー */}
         <header className="p-4 border-b flex items-center justify-between sticky top-0 bg-white z-10">
           <h1 className="text-xl font-bold text-gray-800 tracking-tight">Tone</h1>
-          <button onClick={() => supabase.auth.signOut()} className="text-xs text-gray-500 hover:text-red-500">ログアウト</button>
+          <div className="flex items-center gap-3">
+            {/* 自分の公開プロフィールへのリンク */}
+            {profile?.username && (
+              <Link 
+                to={`/u/${profile.username}`}
+                className="text-xs text-blue-600 hover:underline"
+              >
+                @{profile.username}
+              </Link>
+            )}
+            <button onClick={() => supabase.auth.signOut()} className="text-xs text-gray-500 hover:text-red-500">ログアウト</button>
+          </div>
         </header>
 
         {/* メインコンテンツ（リスト表示） */}
@@ -131,7 +162,7 @@ function App() {
           >
             <span className="text-2xl font-bold">＋</span>
           </button>
-          <span>設定</span>
+          <button onClick={() => setIsSettingsOpen(true)} className="hover:text-blue-600">設定</button>
         </nav>
 
         <SearchModal 
@@ -145,6 +176,15 @@ function App() {
             item={selectedItem} 
             onClose={() => setSelectedItem(null)}
             onSaved={handleLogSaved}
+          />
+        )}
+
+        {/* プロフィール設定モーダル */}
+        {isSettingsOpen && session && (
+          <ProfileSettings
+            userId={session.user.id}
+            onClose={() => setIsSettingsOpen(false)}
+            onSaved={() => fetchProfile(session.user.id)}
           />
         )}
 
