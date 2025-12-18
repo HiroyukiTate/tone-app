@@ -98,22 +98,7 @@ export const SearchModal = ({ isOpen, onClose, onSelectItem }: SearchModalProps)
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {loading && <p className="text-center text-gray-400 mt-4">検索中...</p>}
 
-          {/* 入力があれば「この名前で新規作成」ボタンを表示 */}
-          {!loading && query.trim() && (
-            <button
-              onClick={handleCreateNew}
-              className="w-full text-left p-3 bg-blue-50 border-2 border-dashed border-blue-300 rounded-xl hover:bg-blue-100 transition flex items-center gap-3"
-            >
-              <div className="w-12 h-12 bg-blue-100 rounded flex items-center justify-center flex-shrink-0">
-                <Plus size={24} className="text-blue-600" />
-              </div>
-              <div>
-                <p className="font-bold text-blue-700">「{query}」を新規作成</p>
-                <p className="text-xs text-blue-500">この名前で作品を登録する</p>
-              </div>
-            </button>
-          )}
-
+          {/* 検索結果 */}
           {!loading && results.map((item) => (
             <button
               key={item.id}
@@ -129,12 +114,26 @@ export const SearchModal = ({ isOpen, onClose, onSelectItem }: SearchModalProps)
             </button>
           ))}
 
-          {/* 検索したけど結果が0件だった場合 */}
-          {!loading && searched && results.length === 0 && !query.trim() && (
-            <div className="text-center mt-8 space-y-4">
-              <p className="text-gray-500">
-                作品名を入力して検索してください
-              </p>
+          {/* 検索後、結果の下に「新規作成」ボタンを表示 */}
+          {!loading && searched && query.trim() && (
+            <button
+              onClick={handleCreateNew}
+              className="w-full text-left p-3 bg-blue-50 border-2 border-dashed border-blue-300 rounded-xl hover:bg-blue-100 transition flex items-center gap-3"
+            >
+              <div className="w-12 h-12 bg-blue-100 rounded flex items-center justify-center flex-shrink-0">
+                <Plus size={24} className="text-blue-600" />
+              </div>
+              <div>
+                <p className="font-bold text-blue-700">「{query}」を新規作成</p>
+                <p className="text-xs text-blue-500">見つからない場合はこちらから登録</p>
+              </div>
+            </button>
+          )}
+
+          {/* 検索前のメッセージ */}
+          {!loading && !searched && (
+            <div className="text-center mt-8 text-gray-400">
+              <p>作品名を入力して検索してください</p>
             </div>
           )}
         </div>
