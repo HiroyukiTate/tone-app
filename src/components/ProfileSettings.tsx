@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabaseClient'
 
 interface ProfileSettingsProps {
@@ -9,14 +9,17 @@ interface ProfileSettingsProps {
 
 /**
  * プロフィール設定モーダル
- * username と display_name を編集できる
+ * username, display_name, avatar を編集できる
  */
 export function ProfileSettings({ userId, onClose, onSaved }: ProfileSettingsProps) {
   const [username, setUsername] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 現在のプロフィールを取得
   useEffect(() => {
@@ -33,11 +36,57 @@ export function ProfileSettings({ userId, onClose, onSaved }: ProfileSettingsPro
     if (data) {
       setUsername(data.username || '')
       setDisplayName(data.display_name || '')
+      setAvatarUrl(data.avatar_url || null)
     }
     if (error && error.code !== 'PGRST116') {
       console.error('Error fetching profile:', error)
     }
     setLoading(false)
+  }
+
+  // アバター画像をアップロード
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // ファイルサイズチェック（2MB以下）
+    if (file.size > 2 * 1024 * 1024) {
+      setError('画像は2MB以下にしてください')
+      return
+    }
+
+    // 画像形式チェック
+    if (!file.type.startsWith('image/')) {
+      setError('画像ファイルを選択してください')
+      return
+    }
+
+    setUploading(true)
+    setError(null)
+
+    // ファイル名を生成（ユーザーID + タイムスタンプ）
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${userId}_${Date.now()}.${fileExt}`
+
+    // Storageにアップロード
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(fileName, file, { upsert: true })
+
+    if (uploadError) {
+      setError('アップロードに失敗しました')
+      console.error('Upload error:', uploadError)
+      setUploading(false)
+      return
+    }
+
+    // 公開URLを取得
+    const { data: urlData } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(fileName)
+
+    setAvatarUrl(urlData.publicUrl)
+    setUploading(false)
   }
 
   // プロフィールを保存
@@ -68,6 +117,7 @@ export function ProfileSettings({ userId, onClose, onSaved }: ProfileSettingsPro
         id: userId,
         username: username.toLowerCase(),
         display_name: displayName || null,
+        avatar_url: avatarUrl,
         updated_at: new Date().toISOString()
       })
 
@@ -102,6 +152,36 @@ export function ProfileSettings({ userId, onClose, onSaved }: ProfileSettingsPro
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl p-6 w-[90%] max-w-[380px]">
         <h2 className="text-lg font-bold text-gray-800 mb-4">プロフィール設定</h2>
+
+        {/* アバター画像 */}
+        <div className="mb-4 flex flex-col items-center">
+          <div 
+            onClick={() => fileInputRef.current?.click()}
+            className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center text-3xl overflow-hidden cursor-pointer hover:opacity-80 transition"
+          >
+            {uploading ? (
+              <span className="text-sm text-gray-400">...</span>
+            ) : avatarUrl ? (
+              <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              '👤'
+            )}
+          </div>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="mt-2 text-xs text-blue-600 hover:underline"
+          >
+            {uploading ? 'アップロード中...' : '画像を変更'}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleAvatarUpload}
+            className="hidden"
+          />
+        </div>
 
         {/* ユーザー名 */}
         <div className="mb-4">
