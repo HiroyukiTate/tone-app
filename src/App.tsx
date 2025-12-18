@@ -15,6 +15,7 @@ const STAMPS: Record<string, string> = {
 
 function App() {
   const [session, setSession] = useState<Session | null>(null)
+  const [loading, setLoading] = useState(true) // 初期ローディング状態を追加
   const [logs, setLogs] = useState<any[]>([]) // 取得したログを入れる場所
   const [loadingLogs, setLoadingLogs] = useState(false)
   
@@ -25,19 +26,27 @@ function App() {
 
   // セッション管理
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // マジックリンクからのトークンを処理するため、少し待つ
+    const initSession = async () => {
+      // URLにハッシュがある場合、Supabaseが処理するのを待つ
+      const { data: { session } } = await supabase.auth.getSession()
       setSession(session)
       if (session) {
         fetchLogs(session.user.id)
         fetchProfile(session.user.id)
       }
-    })
+      setLoading(false)
+    }
+    
+    initSession()
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       if (session) {
         fetchLogs(session.user.id)
         fetchProfile(session.user.id)
       }
+      setLoading(false)
     })
     return () => subscription.unsubscribe()
   }, [])
@@ -80,6 +89,15 @@ function App() {
     setSelectedItem(null)
     // リストを再取得して画面を更新
     if (session) fetchLogs(session.user.id)
+  }
+
+  // ローディング中は何も表示しない（マジックリンク処理待ち）
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <p className="text-gray-400">読み込み中...</p>
+      </div>
+    )
   }
 
   if (!session) return <Auth />
