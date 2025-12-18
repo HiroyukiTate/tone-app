@@ -7,4 +7,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    // iOSでのセッション永続化対応
+    persistSession: true,
+    storageKey: 'tone-auth',
+    storage: window.localStorage,
+    detectSessionInUrl: true,
+    flowType: 'pkce'
+  }
+})
